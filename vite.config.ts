@@ -33,9 +33,13 @@ const SECURITY_HEADERS: Record<string, string> = {
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    host: '0.0.0.0',
+    allowedHosts: true,
     headers: SECURITY_HEADERS,
   },
   preview: {
+    host: '0.0.0.0',
+    allowedHosts: true,
     headers: SECURITY_HEADERS,
   },
   build: {
