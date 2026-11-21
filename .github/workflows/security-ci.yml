@@ -1,0 +1,35 @@
+name: Security & Build CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (ignore arbitrary lifecycle scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Supply-chain vulnerability audit
+        run: npm audit --audit-level=high
+
+      - name: Static analysis & linter
+        run: npm run lint
+
+      - name: Production TypeScript & Vite build
+        run: npm run build

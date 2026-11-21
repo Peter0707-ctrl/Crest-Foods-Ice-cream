@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "@fontsource/fredoka/400.css";
+@import "@fontsource/fredoka/500.css";
+@import "@fontsource/fredoka/600.css";
+@import "@fontsource/fredoka/700.css";
+@import "@fontsource/great-vibes/400.css";
+@import "@fontsource/plus-jakarta-sans/300.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/cormorant-garamond/400.css";
+@import "@fontsource/cormorant-garamond/500.css";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/700.css";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-script: "Great Vibes", cursive;
+  --font-rounded: "Fredoka", "Plus Jakarta Sans", sans-serif;
+
+  --color-crest-navy: #072B75;
+  --color-crest-midnight: #051B47;
+  --color-crest-deep: #03112E;
+  --color-crest-red: #D41414;
+  --color-crest-red-dark: #B10F0F;
+  --color-crest-amber: #F48C1C;
+  --color-crest-gold: #D98A2B;
+  --color-crest-cream: #FAF7F2;
+  --color-crest-sand: #F2EBE0;
+  --color-crest-stone: #E6DDD0;
+  --color-crest-ink: #162238;
+  --color-crest-muted: #5A657A;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-crest-cream);
+    color: var(--color-crest-midnight);
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  h1, h2, h3, .font-editorial {
+    font-family: var(--font-serif);
+  }
+}
+
+.font-rounded {
+  font-family: var(--font-rounded);
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+/* Subtle Ken Burns motion for editorial full-bleed hero */
+@keyframes kenburns {
+  0% {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.09) translate3d(-1%, -0.5%, 0);
+  }
+  100% {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+}
+
+.animate-kenburns {
+  animation: kenburns 24s ease-in-out infinite;
+}
+
+/* Continuous non-stop horizontal glide for Google Reviews */
+@keyframes review-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-review-marquee {
+  display: flex;
+  width: max-content;
+  animation: review-marquee 24s linear infinite;
+}
+
+/* Continuous visible floating motion for Chocolate, Strawberry & Milk splashes */
+@keyframes splash-wave-left {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -14px, 0) rotate(2.5deg) scale(1.04);
+  }
+}
+
+@keyframes splash-strawberry-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -22px, 0) rotate(10deg) scale(1.08);
+  }
+}
+
+@keyframes splash-wave-right {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(-24px, -16px, 0) rotate(-3deg) scale(1.05);
+  }
+}
+
+.animate-splash-left {
+  animation: splash-wave-left 3.2s ease-in-out infinite;
+}
+
+.animate-splash-center {
+  animation: splash-strawberry-float 2.6s ease-in-out infinite;
+}
+
+.animate-splash-right {
+  animation: splash-wave-right 3.4s ease-in-out infinite;
+}
+
+/* Editorial hairline divider */
+.editorial-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217, 138, 43, 0.45), transparent);
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #C9BDA9;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #072B75;
+}
