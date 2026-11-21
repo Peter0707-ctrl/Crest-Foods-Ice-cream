@@ -297,15 +297,21 @@ export const HomePage: React.FC = () => {
             transition={{ duration: 1.15, ease: 'easeInOut' }}
             className="absolute inset-0 w-full h-full"
           >
+            <img
+              src={currentSlide.poster}
+              alt={currentSlide.title}
+              className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
+            />
             <video
               key={currentSlide.video}
               src={currentSlide.video}
               poster={currentSlide.poster}
+              preload="metadata"
               autoPlay
               muted
               loop
               playsInline
-              className="w-full h-full object-cover scale-[1.02]"
+              className="relative z-10 w-full h-full object-cover scale-[1.02]"
             />
           </motion.div>
         </AnimatePresence>

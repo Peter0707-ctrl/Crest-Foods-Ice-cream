@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,19 +18,6 @@ const SECURITY_HEADERS = {
   'Permissions-Policy':
     'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-  'Content-Security-Policy': [
-    "default-src 'self' https://*.devtunnels.ms",
-    "script-src 'self' 'unsafe-inline' https://*.devtunnels.ms",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self' data:",
-    "img-src 'self' data: blob: https://*.devtunnels.ms",
-    "media-src 'self' blob: https://*.devtunnels.ms",
-    "connect-src 'self' ws: wss: https://*.devtunnels.ms wss://*.devtunnels.ms",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'self'",
-  ].join('; '),
 };
 
 const MIME_TYPES = {
@@ -49,10 +37,22 @@ const MIME_TYPES = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
+const COMPRESSIBLE_EXTS = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt']);
+
 function applySecurityHeaders(res) {
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     res.setHeader(key, value);
   }
+}
+
+function pipeStreamSafely(stream, res) {
+  res.on('close', () => {
+    if (!stream.destroyed) stream.destroy();
+  });
+  stream.on('error', () => {
+    if (!res.writableEnded) res.end();
+  });
+  stream.pipe(res);
 }
 
 function serveFile(req, res, filePath, stat) {
@@ -68,7 +68,7 @@ function serveFile(req, res, filePath, stat) {
     res.setHeader('Cache-Control', 'public, max-age=86400');
   }
 
-  // Support HTTP Range requests for smooth MP4 video streaming on desktop & mobile browsers
+  // HTTP Range requests for MP4 streaming
   const range = req.headers.range;
   if (range && ext === '.mp4') {
     const parts = range.replace(/bytes=/, '').split('-');
@@ -90,7 +90,23 @@ function serveFile(req, res, filePath, stat) {
       res.end();
       return;
     }
-    fs.createReadStream(filePath, { start, end }).pipe(res);
+    pipeStreamSafely(fs.createReadStream(filePath, { start, end }), res);
+    return;
+  }
+
+  // Gzip text assets (JS/CSS/HTML) so tunnels & mobile networks load 4x faster
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  if (COMPRESSIBLE_EXTS.has(ext) && acceptEncoding.includes('gzip') && req.method === 'GET') {
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Vary', 'Accept-Encoding');
+    res.writeHead(200);
+    const raw = fs.createReadStream(filePath);
+    const gzip = zlib.createGzip({ level: 6 });
+    res.on('close', () => {
+      if (!raw.destroyed) raw.destroy();
+      if (!gzip.destroyed) gzip.destroy();
+    });
+    raw.pipe(gzip).pipe(res);
     return;
   }
 
@@ -101,7 +117,7 @@ function serveFile(req, res, filePath, stat) {
     res.end();
     return;
   }
-  fs.createReadStream(filePath).pipe(res);
+  pipeStreamSafely(fs.createReadStream(filePath), res);
 }
 
 const server = http.createServer((req, res) => {
@@ -115,7 +131,6 @@ const server = http.createServer((req, res) => {
 
   const rawUrl = (req.url || '/').split('?')[0];
 
-  // Railway zero-downtime healthcheck endpoint
   if (rawUrl === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ status: 'ok' }));
@@ -131,17 +146,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Block hidden dotfiles (.htaccess, .env, .git, etc.)
   if (decodedPath.split('/').some((segment) => segment.startsWith('.') && segment.length > 1)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden');
     return;
   }
 
-  const safeRelative = path.normalize(decodedPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const candidatePath = path.resolve(DIST_DIR, `.${path.sep}${safeRelative}`);
+  // Safely resolve relative path inside DIST_DIR on both Windows and Linux
+  const cleanRel = decodedPath.replace(/^[/\\]+/, '');
+  const candidatePath = path.resolve(DIST_DIR, cleanRel);
 
-  // Enforce strict directory boundary against path traversal
   if (!candidatePath.startsWith(DIST_DIR)) {
     res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Forbidden');
@@ -156,7 +170,6 @@ const server = http.createServer((req, res) => {
     }
   }
 
-  // SPA Fallback to dist/index.html for React Router routes
   const indexPath = path.join(DIST_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
     const indexStat = fs.statSync(indexPath);
